@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('machine_id', 20)->unique()->nullable();
             $table->string('employee_id', 20)->unique()->nullable();
-            $table->foreignId('department_id')->nullable()->constrained('departments')->onDelete('set null');
+            $table->foreignId('department_id')->nullable();
             $table->string('name');
             $table->string('email')->unique();
             $table->string('supervisor_id')->nullable();   
