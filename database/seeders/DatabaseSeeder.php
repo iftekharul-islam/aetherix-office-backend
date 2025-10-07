@@ -1,0 +1,64 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Department;
+use App\Models\Division;
+use App\Models\SlackCredentials;
+use App\Models\User;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+
+class DatabaseSeeder extends Seeder
+{
+    /**
+     * Seed the application's database.
+     */
+    public function run(): void
+    {
+        Division::create([
+            'name' => 'Aetherix',
+            'code' => 'AEX',
+            'description' => 'Aetherix Division',
+        ]);
+        Division::create([
+            'name' => 'Citygen',
+            'code' => 'CTG',
+            'description' => 'Citygen Division',
+        ]);
+        Department::create([
+            'division_id' => 1,
+            'name' => 'Software Development',
+            'code' => 'SWD',
+            'description' => 'Software Development Department',
+        ]);
+
+        Department::create([
+            'division_id' => 2,
+            'name' => 'CityZen Operations',
+            'code' => 'CTO',
+            'description' => 'CityZen Operations Department',
+        ]);
+
+        User::create([
+            'name' => 'Asm Saki',
+            'machine_id' => 454545,
+            'email' => 'asm@example.com',
+            'role' => 'employee',
+            'password' => Hash::make('123456'),
+        ]);
+
+        User::create([
+            'name' => 'Mad User',
+            'email' => 'mad@example.com',
+            'machine_id' => 544545,
+          
+          
+            'role' => 'employee',
+            'password' => Hash::make('123456'),
+        ]);
+
+       
+    }
+}

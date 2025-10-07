@@ -1,0 +1,511 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\MachineAttendance;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+
+class MachineAttendanceController extends Controller
+{
+    /**
+     * Display a listing of the machine attendances.
+     */
+    public function index(Request $request)
+    {
+        $query = MachineAttendance::with('user');
+
+        // Global search / filter
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                    ->orWhere('email', 'like', "%$search%")
+                    ->orWhere('employee_id', 'like', "%$search%");
+            })->orWhere('uid', $search)
+                ->orWhere('attendance_id', $search)
+                ->orWhere('type', 'like', "%$search%");
+        }
+
+        // Optional: Filter by type, user_id, date, etc.
+        if ($request->has('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        if ($request->has('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
+        // if ($request->has('from') && $request->has('to')) {
+        //     $query->whereBetween('datetime', [$request->input('from'), $request->input('to')]);
+        // }
+
+        if ($request->has('from') && $request->has('to')) {
+            $from = $request->input('from') . ' 00:00:00';
+            $to = $request->input('to') . ' 23:59:59';
+            $query->whereBetween('datetime', [$from, $to]);
+        }
+
+        // Sorting
+        if ($request->has('sort_by') && $request->has('sort_order')) {
+            $query->orderBy($request->input('sort_by'), $request->input('sort_order'));
+        } else {
+            $query->latest();
+        }
+
+        // Pagination
+        $perPage = $request->input('per_page', 10); // default 10 per page
+        $attendances = $query->paginate($perPage);
+
+        return response()->json($attendances);
+    }
+
+    // enhanced version of index
+    //   public function summary(Request $request)
+    // {
+    //     try {
+    //         // Base query with user, department, division
+    //         $query = MachineAttendance::with(['user.department.division'])
+    //             ->when($request->filled('search'), function ($q) use ($request) {
+    //                 $search = $request->input('search');
+    //                 $q->whereHas('user', function ($q2) use ($search) {
+    //                     $q2->where('name', 'like', "%$search%")
+    //                         ->orWhere('email', 'like', "%$search%")
+    //                         ->orWhere('employee_id', 'like', "%$search%");
+    //                 })
+    //                 ->orWhere('attendance_id', 'like', "%$search%")
+    //                 ->orWhere('type', 'like', "%$search%");
+    //             })
+    //             ->when($request->filled('user_id'), fn($q) => $q->where('user_id', $request->user_id))
+    //             ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
+    //             ->when($request->filled('department_id'), fn($q) =>
+    //                 $q->whereHas('user.department', fn($q2) => $q2->where('id', $request->department_id))
+    //             )
+    //             ->when($request->filled('division_id'), fn($q) =>
+    //                 $q->whereHas('user.department.division', fn($q2) => $q2->where('id', $request->division_id))
+    //             )
+    //             ->when($request->filled('from') && $request->filled('to'), fn($q) =>
+    //                 $q->whereBetween('datetime', [
+    //                     $request->from . ' 00:00:00',
+    //                     $request->to . ' 23:59:59'
+    //                 ])
+    //             );
+
+    //         // Default sorting (newest first)
+    //         if ($request->filled('sort_by') && $request->filled('sort_order')) {
+    //             $query->orderBy($request->sort_by, $request->sort_order);
+    //         } else {
+    //             $query->latest('datetime');
+    //         }
+
+    //         $attendances = $query->get();
+
+    //         $summary = $attendances->groupBy(function ($item) {
+    //             return $item->user_id . '_' . $item->datetime->format('Y-m-d');
+    //         })->map(function ($group) {
+    //             $firstCheckin = $group->where('type', 'checkin')->min('datetime');
+    //             $lastCheckout = $group->where('type', 'checkout')->max('datetime');
+
+    //             $workedSeconds = strtotime($lastCheckout) - strtotime($firstCheckin);
+    //             $workedHours = $workedSeconds > 0 ? round($workedSeconds / 3600, 2) : 0;
+
+    //             $officeHours = $group->first()->user->department->office_hours ?? 8;
+    //             $extraLessHours = round($workedHours - $officeHours, 2);
+
+    //             $status = 'On Time';
+    //             $firstCheckinHour = date('H', strtotime($firstCheckin));
+    //             $lateThreshold = $group->first()->user->department->office_start_hour ?? 9;
+
+    //             if ($workedHours == 0) {
+    //                 $status = 'Absent';
+    //             } elseif ($firstCheckinHour > $lateThreshold + 2) {
+    //                 $status = 'Extremely Late';
+    //             } elseif ($firstCheckinHour > $lateThreshold) {
+    //                 $status = 'Late';
+    //             }
+
+    //             return [
+    //                 'date' => date('Y-m-d', strtotime($group->first()->datetime)),
+    //                 'user' => [
+    //                     'id' => $group->first()->user->id,
+    //                     'name' => $group->first()->user->name,
+    //                     'email' => $group->first()->user->email,
+    //                     'department' => $group->first()->user->department->name ?? null,
+    //                     'division' => $group->first()->user->department->division->name ?? null,
+    //                 ],
+    //                 'first_checkin' => $firstCheckin,
+    //                 'last_checkout' => $lastCheckout,
+    //                 'worked_hours' => $workedHours,
+    //                 'extra_less_hours' => $extraLessHours,
+    //                 'status' => $status,
+    //             ];
+    //         })->values();
+
+    //         $perPage = $request->input('per_page', 10);
+    //         $page = $request->input('page', 1);
+    //         $paginated = $summary->forPage($page, $perPage);
+
+    //         return response()->json([
+    //             'data' => $paginated,
+    //             'total' => $summary->count(),
+    //             'per_page' => $perPage,
+    //             'current_page' => (int)$page,
+    //             'last_page' => ceil($summary->count() / $perPage)
+    //         ]);
+
+    //     } catch (\Throwable $e) {
+    //         info('Summary error: ' . $e->getMessage());
+    //         return response()->json([
+    //             'error' => 'Something went wrong',
+    //             'message' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
+
+    // public function summary(Request $request)
+    // {
+    //     try {
+    //         // Base query with user, department, division
+    //         $query = MachineAttendance::with(['user.department.division'])
+    //             ->when($request->filled('search'), function ($q) use ($request) {
+    //                 $search = $request->input('search');
+    //                 $q->whereHas('user', function ($q2) use ($search) {
+    //                     $q2->where('name', 'like', "%$search%")
+    //                         ->orWhere('email', 'like', "%$search%")
+    //                         ->orWhere('employee_id', 'like', "%$search%");
+    //                 })
+    //                     ->orWhere('attendance_id', 'like', "%$search%")
+    //                     ->orWhere('type', 'like', "%$search%");
+    //             })
+    //             ->when($request->filled('user_id'), fn($q) => $q->where('user_id', $request->user_id))
+    //             ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
+    //             ->when(
+    //                 $request->filled('department_id'),
+    //                 fn($q) =>
+    //                 $q->whereHas('user.department', fn($q2) => $q2->where('id', $request->department_id))
+    //             )
+    //             ->when(
+    //                 $request->filled('division_id'),
+    //                 fn($q) =>
+    //                 $q->whereHas('user.department.division', fn($q2) => $q2->where('id', $request->division_id))
+    //             )
+    //             ->when(
+    //                 $request->filled('from') && $request->filled('to'),
+    //                 fn($q) =>
+    //                 $q->whereBetween('datetime', [
+    //                     $request->from . ' 00:00:00',
+    //                     $request->to . ' 23:59:59'
+    //                 ])
+    //             );
+
+    //         // Default sorting (newest first)
+    //         if ($request->filled('sort_by') && $request->filled('sort_order')) {
+    //             $query->orderBy($request->sort_by, $request->sort_order);
+    //         } else {
+    //             $query->latest('datetime');
+    //         }
+
+    //         $attendances = $query->get();
+
+    //         $summary = $attendances->groupBy(function ($item) {
+    //             // Handle both Carbon instances and string dates
+    //             if ($item->datetime instanceof \Carbon\Carbon) {
+    //                 $dateString = $item->datetime->format('Y-m-d');
+    //             } else {
+    //                 // If it's a string, try to extract the date part
+    //                 $dateString = date('Y-m-d', strtotime($item->datetime));
+    //             }
+
+    //             return $item->user_id . '_' . $dateString;
+    //         })->map(function ($group) {
+    //             // Convert datetime strings to Carbon instances for calculations
+    //             $datetimes = $group->map(function ($item) {
+    //                 return $item->datetime instanceof \Carbon\Carbon
+    //                     ? $item->datetime
+    //                     : \Carbon\Carbon::parse($item->datetime);
+    //             });
+
+    //             $checkins = $group->where('type', 'checkin');
+    //             $checkouts = $group->where('type', 'checkout');
+
+    //             // Find first checkin and last checkout with proper datetime handling
+    //             $firstCheckin = null;
+    //             $lastCheckout = null;
+
+    //             if ($checkins->isNotEmpty()) {
+    //                 $firstCheckin = $checkins->min(function ($item) {
+    //                     return $item->datetime instanceof \Carbon\Carbon
+    //                         ? $item->datetime
+    //                         : \Carbon\Carbon::parse($item->datetime);
+    //                 });
+    //             }
+
+    //             if ($checkouts->isNotEmpty()) {
+    //                 $lastCheckout = $checkouts->max(function ($item) {
+    //                     return $item->datetime instanceof \Carbon\Carbon
+    //                         ? $item->datetime
+    //                         : \Carbon\Carbon::parse($item->datetime);
+    //                 });
+    //             }
+
+    //             $workedHours = 0;
+    //             if ($firstCheckin && $lastCheckout) {
+    //                 // Ensure we're working with Carbon instances
+    //                 $firstCheckinCarbon = $firstCheckin instanceof \Carbon\Carbon
+    //                     ? $firstCheckin
+    //                     : \Carbon\Carbon::parse($firstCheckin);
+
+    //                 $lastCheckoutCarbon = $lastCheckout instanceof \Carbon\Carbon
+    //                     ? $lastCheckout
+    //                     : \Carbon\Carbon::parse($lastCheckout);
+
+    //                 $workedSeconds = $lastCheckoutCarbon->diffInSeconds($firstCheckinCarbon);
+    //                 $workedHours = $workedSeconds > 0 ? round($workedSeconds / 3600, 2) : 0;
+    //             }
+
+    //             $officeHours = $group->first()->user->department->office_hours ?? 8;
+    //             $extraLessHours = round($workedHours - $officeHours, 2);
+
+    //             $status = 'On Time';
+    //             if ($firstCheckin) {
+    //                 $firstCheckinCarbon = $firstCheckin instanceof \Carbon\Carbon
+    //                     ? $firstCheckin
+    //                     : \Carbon\Carbon::parse($firstCheckin);
+
+    //                 $firstCheckinHour = $firstCheckinCarbon->hour;
+    //                 $lateThreshold = $group->first()->user->department->office_start_hour ?? 9;
+
+    //                 if ($workedHours == 0) {
+    //                     $status = 'Absent';
+    //                 } elseif ($firstCheckinHour > $lateThreshold + 2) {
+    //                     $status = 'Extremely Late';
+    //                 } elseif ($firstCheckinHour > $lateThreshold) {
+    //                     $status = 'Late';
+    //                 }
+    //             } else {
+    //                 $status = 'Absent';
+    //             }
+
+    //             // Get the date from the first item
+    //             $firstItem = $group->first();
+    //             $dateForResponse = $firstItem->datetime instanceof \Carbon\Carbon
+    //                 ? $firstItem->datetime->format('Y-m-d')
+    //                 : date('Y-m-d', strtotime($firstItem->datetime));
+
+    //             return [
+    //                 'date' => $dateForResponse,
+    //                 'user' => [
+    //                     'id' => $group->first()->user->id,
+    //                     'name' => $group->first()->user->name,
+    //                     'email' => $group->first()->user->email,
+    //                     'department' => $group->first()->user->department->name ?? null,
+    //                     'division' => $group->first()->user->department->division->name ?? null,
+    //                 ],
+    //                 'first_checkin' => $firstCheckin ? ($firstCheckin instanceof \Carbon\Carbon ? $firstCheckin->toDateTimeString() : $firstCheckin) : null,
+    //                 'last_checkout' => $lastCheckout ? ($lastCheckout instanceof \Carbon\Carbon ? $lastCheckout->toDateTimeString() : $lastCheckout) : null,
+    //                 'worked_hours' => $workedHours,
+    //                 'extra_less_hours' => $extraLessHours,
+    //                 'status' => $status,
+    //             ];
+    //         })->values();
+
+    //         $perPage = $request->input('per_page', 10);
+    //         $page = $request->input('page', 1);
+    //         $paginated = $summary->forPage($page, $perPage);
+
+    //         return response()->json([
+    //             'data' => $paginated,
+    //             'total' => $summary->count(),
+    //             'per_page' => $perPage,
+    //             'current_page' => (int)$page,
+    //             'last_page' => ceil($summary->count() / $perPage)
+    //         ]);
+    //     } catch (\Throwable $e) {
+    //         info('Summary error: ' . $e->getMessage());
+    //         return response()->json([
+    //             'error' => 'Something went wrong',
+    //             'message' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
+
+    public function summary(Request $request)
+    {
+
+        info(("Request Data: " . json_encode($request->all())));
+
+        try {
+            // Base query with relationships and filters
+            $query = MachineAttendance::with(['user.department.division'])
+                ->when($request->filled('search'), function ($q) use ($request) {
+                    $search = $request->input('search');
+                    $q->whereHas('user', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%$search%")
+                            ->orWhere('email', 'like', "%$search%")
+                            ->orWhere('employee_id', 'like', "%$search%");
+                    })
+                        ->orWhere('attendance_id', 'like', "%$search%")
+                        ->orWhere('type', 'like', "%$search%");
+                })
+                ->when($request->filled('user_id'), fn($q) => $q->where('user_id', $request->user_id))
+                ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
+                ->when(
+                    $request->filled('department_id'),
+                    fn($q) =>
+                    $q->whereHas('user.department', fn($q2) => $q2->where('id', $request->department_id))
+                )
+                ->when(
+                    $request->filled('division_id'),
+                    fn($q) =>
+                    $q->whereHas('user.department.division', fn($q2) => $q2->where('id', $request->division_id))
+                )
+                ->when($request->filled('from') && $request->filled('to'), function ($q) use ($request) {
+                    $from = $request->input('from') . ' 00:00:00';
+                    $to = $request->input('to') . ' 23:59:59';
+                    $q->whereBetween('datetime', [$from, $to]);
+                })
+                ->when($request->filled('date') && !$request->filled('from') && !$request->filled('to'), function ($q) use ($request) {
+                    $q->whereDate('datetime', $request->date);
+                });
+
+            // Sorting
+            if ($request->filled('sort_by') && $request->filled('sort_order')) {
+                $query->orderBy($request->sort_by, $request->sort_order);
+            } else {
+                $query->latest('datetime');
+            }
+
+            // Fetch all attendances
+            $attendances = $query->get();
+
+            // Group by user + date
+            $grouped = $attendances->groupBy(function ($item) {
+                $dateString = $item->datetime instanceof \Carbon\Carbon
+                    ? $item->datetime->format('Y-m-d')
+                    : date('Y-m-d', strtotime($item->datetime));
+                return $item->user_id . '_' . $dateString;
+            });
+
+            // Pagination
+            $perPage = $request->input('per_page', 10);
+            $page = $request->input('page', 1);
+            $sliced = $grouped->slice(($page - 1) * $perPage, $perPage)->values();
+
+            $paginator = new LengthAwarePaginator(
+                $sliced,
+                $grouped->count(),
+                $perPage,
+                $page,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+
+            // Prepare response data
+            $data = $sliced->map(function ($group) {
+                $firstCheckin = $group->where('type', 'checkin')->min('datetime');
+                $lastCheckout = $group->where('type', 'checkout')->max('datetime');
+                $firstItem = $group->first();
+
+                return [
+                    'date' => $firstItem->datetime instanceof \Carbon\Carbon
+                        ? $firstItem->datetime->format('Y-m-d')
+                        : date('Y-m-d', strtotime($firstItem->datetime)),
+                    'user' => [
+                        'id' => $firstItem->user->id,
+                        'name' => $firstItem->user->name,
+                        'email' => $firstItem->user->email,
+                        'employee_id' => $firstItem->user->employee_id ?? null,
+                        'department' => $firstItem->user->department->name ?? null,
+                        'division' => $firstItem->user->department->division->name ?? null,
+                    ],
+                    'first_checkin' => $firstCheckin instanceof \Carbon\Carbon ? $firstCheckin->toDateTimeString() : $firstCheckin,
+                    'last_checkout' => $lastCheckout instanceof \Carbon\Carbon ? $lastCheckout->toDateTimeString() : $lastCheckout,
+                    'details' => $group->map(fn($item) => [
+                        'datetime' => $item->datetime instanceof \Carbon\Carbon ? $item->datetime->toDateTimeString() : $item->datetime,
+                        'type' => $item->type,
+                    ])->values(),
+                ];
+            });
+
+            return response()->json([
+                'data' => $data,
+                'total' => $grouped->count(),
+                'per_page' => $perPage,
+                'current_page' => (int)$page,
+                'last_page' => ceil($grouped->count() / $perPage)
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => 'Something went wrong',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+
+
+
+    /**
+     * Store a newly created machine attendance.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'uid' => 'required|integer|unique:machine_attendances,uid',
+            'attendance_id' => 'required|integer',
+            'user_id' => 'required|exists:users,id',
+            'type' => 'required|in:checkin,checkout',
+            'datetime' => 'required|date',
+        ]);
+
+        $attendance = MachineAttendance::create($validated);
+
+        return response()->json([
+            'message' => 'Attendance created successfully.',
+            'data' => $attendance
+        ], 201);
+    }
+
+    /**
+     * Display a specific machine attendance.
+     */
+    public function show(MachineAttendance $machineAttendance)
+    {
+        return response()->json($machineAttendance->load('user'));
+    }
+
+    /**
+     * Update the specified machine attendance.
+     */
+    public function update(Request $request, MachineAttendance $machineAttendance)
+    {
+        $validated = $request->validate([
+            'uid' => 'sometimes|integer|unique:machine_attendances,uid,' . $machineAttendance->id,
+            'attendance_id' => 'sometimes|integer',
+            'user_id' => 'sometimes|exists:users,id',
+            'type' => 'sometimes|in:checkin,checkout',
+            'datetime' => 'sometimes|date',
+        ]);
+
+        $machineAttendance->update($validated);
+
+        return response()->json([
+            'message' => 'Attendance updated successfully.',
+            'data' => $machineAttendance
+        ]);
+    }
+
+    /**
+     * Remove the specified machine attendance.
+     */
+    public function destroy(MachineAttendance $machineAttendance)
+    {
+        $machineAttendance->delete();
+
+        return response()->json([
+            'message' => 'Attendance deleted successfully.'
+        ]);
+    }
+}
