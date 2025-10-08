@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+
 
 class UserController extends Controller
 {
@@ -26,7 +28,7 @@ class UserController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
                 'machine_id' => 'nullable',
-                'employee_id' => 'nullable|string|unique:users,employee_id', 
+                'employee_id' => 'nullable|string|unique:users,employee_id',
                 'department_id' => 'nullable|exists:departments,id',
                 'supervisor_id' => 'nullable|integer|exists:users,id',
                 'role' => 'nullable|string|in:employee,admin,supervisor',
@@ -37,7 +39,7 @@ class UserController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'machine_id' => $validated['machine_id'],
-                'employee_id' => $validated['employee_id'] ?? null, 
+                'employee_id' => $validated['employee_id'] ?? null,
                 'department_id' => $validated['department_id'] ?? null,
                 'supervisor_id' => $validated['supervisor_id'] ?? null,
                 'role' => $validated['role'],
@@ -106,7 +108,6 @@ class UserController extends Controller
             return response()->json(['error' => 'Failed to update user'], 500);
         }
     }
-
 
 
     // Delete a user
