@@ -80,6 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/export/divisions', [ExportController::class, 'exportDivisions']);
     Route::get('/export/attendances', [ExportController::class, 'exportAttendances']);
     Route::get('/export/attendance-details', [ExportController::class, 'exportAttendanceDetails']);
+    Route::patch('attendance/{attendance}/soft-delete', [MachineAttendanceController::class, 'softDelete']);
 });
 
 

@@ -163,172 +163,7 @@ class MachineAttendanceController extends Controller
     // }
 
 
-    // public function summary(Request $request)
-    // {
-    //     try {
-    //         // Base query with user, department, division
-    //         $query = MachineAttendance::with(['user.department.division'])
-    //             ->when($request->filled('search'), function ($q) use ($request) {
-    //                 $search = $request->input('search');
-    //                 $q->whereHas('user', function ($q2) use ($search) {
-    //                     $q2->where('name', 'like', "%$search%")
-    //                         ->orWhere('email', 'like', "%$search%")
-    //                         ->orWhere('employee_id', 'like', "%$search%");
-    //                 })
-    //                     ->orWhere('attendance_id', 'like', "%$search%")
-    //                     ->orWhere('type', 'like', "%$search%");
-    //             })
-    //             ->when($request->filled('user_id'), fn($q) => $q->where('user_id', $request->user_id))
-    //             ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
-    //             ->when(
-    //                 $request->filled('department_id'),
-    //                 fn($q) =>
-    //                 $q->whereHas('user.department', fn($q2) => $q2->where('id', $request->department_id))
-    //             )
-    //             ->when(
-    //                 $request->filled('division_id'),
-    //                 fn($q) =>
-    //                 $q->whereHas('user.department.division', fn($q2) => $q2->where('id', $request->division_id))
-    //             )
-    //             ->when(
-    //                 $request->filled('from') && $request->filled('to'),
-    //                 fn($q) =>
-    //                 $q->whereBetween('datetime', [
-    //                     $request->from . ' 00:00:00',
-    //                     $request->to . ' 23:59:59'
-    //                 ])
-    //             );
 
-    //         // Default sorting (newest first)
-    //         if ($request->filled('sort_by') && $request->filled('sort_order')) {
-    //             $query->orderBy($request->sort_by, $request->sort_order);
-    //         } else {
-    //             $query->latest('datetime');
-    //         }
-
-    //         $attendances = $query->get();
-
-    //         $summary = $attendances->groupBy(function ($item) {
-    //             // Handle both Carbon instances and string dates
-    //             if ($item->datetime instanceof \Carbon\Carbon) {
-    //                 $dateString = $item->datetime->format('Y-m-d');
-    //             } else {
-    //                 // If it's a string, try to extract the date part
-    //                 $dateString = date('Y-m-d', strtotime($item->datetime));
-    //             }
-
-    //             return $item->user_id . '_' . $dateString;
-    //         })->map(function ($group) {
-    //             // Convert datetime strings to Carbon instances for calculations
-    //             $datetimes = $group->map(function ($item) {
-    //                 return $item->datetime instanceof \Carbon\Carbon
-    //                     ? $item->datetime
-    //                     : \Carbon\Carbon::parse($item->datetime);
-    //             });
-
-    //             $checkins = $group->where('type', 'checkin');
-    //             $checkouts = $group->where('type', 'checkout');
-
-    //             // Find first checkin and last checkout with proper datetime handling
-    //             $firstCheckin = null;
-    //             $lastCheckout = null;
-
-    //             if ($checkins->isNotEmpty()) {
-    //                 $firstCheckin = $checkins->min(function ($item) {
-    //                     return $item->datetime instanceof \Carbon\Carbon
-    //                         ? $item->datetime
-    //                         : \Carbon\Carbon::parse($item->datetime);
-    //                 });
-    //             }
-
-    //             if ($checkouts->isNotEmpty()) {
-    //                 $lastCheckout = $checkouts->max(function ($item) {
-    //                     return $item->datetime instanceof \Carbon\Carbon
-    //                         ? $item->datetime
-    //                         : \Carbon\Carbon::parse($item->datetime);
-    //                 });
-    //             }
-
-    //             $workedHours = 0;
-    //             if ($firstCheckin && $lastCheckout) {
-    //                 // Ensure we're working with Carbon instances
-    //                 $firstCheckinCarbon = $firstCheckin instanceof \Carbon\Carbon
-    //                     ? $firstCheckin
-    //                     : \Carbon\Carbon::parse($firstCheckin);
-
-    //                 $lastCheckoutCarbon = $lastCheckout instanceof \Carbon\Carbon
-    //                     ? $lastCheckout
-    //                     : \Carbon\Carbon::parse($lastCheckout);
-
-    //                 $workedSeconds = $lastCheckoutCarbon->diffInSeconds($firstCheckinCarbon);
-    //                 $workedHours = $workedSeconds > 0 ? round($workedSeconds / 3600, 2) : 0;
-    //             }
-
-    //             $officeHours = $group->first()->user->department->office_hours ?? 8;
-    //             $extraLessHours = round($workedHours - $officeHours, 2);
-
-    //             $status = 'On Time';
-    //             if ($firstCheckin) {
-    //                 $firstCheckinCarbon = $firstCheckin instanceof \Carbon\Carbon
-    //                     ? $firstCheckin
-    //                     : \Carbon\Carbon::parse($firstCheckin);
-
-    //                 $firstCheckinHour = $firstCheckinCarbon->hour;
-    //                 $lateThreshold = $group->first()->user->department->office_start_hour ?? 9;
-
-    //                 if ($workedHours == 0) {
-    //                     $status = 'Absent';
-    //                 } elseif ($firstCheckinHour > $lateThreshold + 2) {
-    //                     $status = 'Extremely Late';
-    //                 } elseif ($firstCheckinHour > $lateThreshold) {
-    //                     $status = 'Late';
-    //                 }
-    //             } else {
-    //                 $status = 'Absent';
-    //             }
-
-    //             // Get the date from the first item
-    //             $firstItem = $group->first();
-    //             $dateForResponse = $firstItem->datetime instanceof \Carbon\Carbon
-    //                 ? $firstItem->datetime->format('Y-m-d')
-    //                 : date('Y-m-d', strtotime($firstItem->datetime));
-
-    //             return [
-    //                 'date' => $dateForResponse,
-    //                 'user' => [
-    //                     'id' => $group->first()->user->id,
-    //                     'name' => $group->first()->user->name,
-    //                     'email' => $group->first()->user->email,
-    //                     'department' => $group->first()->user->department->name ?? null,
-    //                     'division' => $group->first()->user->department->division->name ?? null,
-    //                 ],
-    //                 'first_checkin' => $firstCheckin ? ($firstCheckin instanceof \Carbon\Carbon ? $firstCheckin->toDateTimeString() : $firstCheckin) : null,
-    //                 'last_checkout' => $lastCheckout ? ($lastCheckout instanceof \Carbon\Carbon ? $lastCheckout->toDateTimeString() : $lastCheckout) : null,
-    //                 'worked_hours' => $workedHours,
-    //                 'extra_less_hours' => $extraLessHours,
-    //                 'status' => $status,
-    //             ];
-    //         })->values();
-
-    //         $perPage = $request->input('per_page', 10);
-    //         $page = $request->input('page', 1);
-    //         $paginated = $summary->forPage($page, $perPage);
-
-    //         return response()->json([
-    //             'data' => $paginated,
-    //             'total' => $summary->count(),
-    //             'per_page' => $perPage,
-    //             'current_page' => (int)$page,
-    //             'last_page' => ceil($summary->count() / $perPage)
-    //         ]);
-    //     } catch (\Throwable $e) {
-    //         info('Summary error: ' . $e->getMessage());
-    //         return response()->json([
-    //             'error' => 'Something went wrong',
-    //             'message' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
 
 
     public function summary(Request $request)
@@ -349,6 +184,7 @@ class MachineAttendanceController extends Controller
                         ->orWhere('attendance_id', 'like', "%$search%")
                         ->orWhere('type', 'like', "%$search%");
                 })
+                ->where('is_deleted', false)
                 ->when($request->filled('user_id'), fn($q) => $q->where('user_id', $request->user_id))
                 ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
                 ->when(
@@ -370,11 +206,12 @@ class MachineAttendanceController extends Controller
                     $q->whereDate('datetime', $request->date);
                 });
 
+
             // Sorting
             if ($request->filled('sort_by') && $request->filled('sort_order')) {
                 $query->orderBy($request->sort_by, $request->sort_order);
             } else {
-                $query->latest('datetime');
+                $query->orderByRaw('DATE(datetime) DESC, TIME(datetime) ASC');
             }
 
             // Fetch all attendances
@@ -403,8 +240,14 @@ class MachineAttendanceController extends Controller
 
             // Prepare response data
             $data = $sliced->map(function ($group) {
-                $firstCheckin = $group->where('type', 'checkin')->min('datetime');
-                $lastCheckout = $group->where('type', 'checkout')->max('datetime');
+                // ! don't delete this two,
+                // $firstCheckin = $group->where('type', 'checkin')->min('datetime');
+                // $lastCheckout = $group->where('type', 'checkout')->max('datetime');
+
+
+                // ! this two will be deleted after completion
+                $firstCheckin = $group->min('datetime');
+                $lastCheckout = $group->max('datetime');
                 $firstItem = $group->first();
 
                 return [
@@ -421,10 +264,29 @@ class MachineAttendanceController extends Controller
                     ],
                     'first_checkin' => $firstCheckin instanceof \Carbon\Carbon ? $firstCheckin->toDateTimeString() : $firstCheckin,
                     'last_checkout' => $lastCheckout instanceof \Carbon\Carbon ? $lastCheckout->toDateTimeString() : $lastCheckout,
-                    'details' => $group->map(fn($item) => [
-                        'datetime' => $item->datetime instanceof \Carbon\Carbon ? $item->datetime->toDateTimeString() : $item->datetime,
-                        'type' => $item->type,
-                    ])->values(),
+                    // 'details' => $group
+                    //     ->where('is_deleted', false)
+                    //     ->map(fn($item) => [
+                    //         'id' => $item->id,
+                    //         'datetime' => $item->datetime instanceof \Carbon\Carbon
+                    //             ? $item->datetime->toDateTimeString()
+                    //             : $item->datetime,
+                    //         'type' => $item->type,
+                    //     ])->values(),
+                    'details' => $group
+                        ->where('is_deleted', false)
+                        ->sortBy(function ($item) {
+                            return $item->datetime instanceof \Carbon\Carbon
+                                ? $item->datetime->timestamp
+                                : strtotime($item->datetime);
+                        })
+                        ->map(fn($item) => [
+                            'id' => $item->id,
+                            'datetime' => $item->datetime instanceof \Carbon\Carbon
+                                ? $item->datetime->toDateTimeString()
+                                : $item->datetime,
+                            'type' => $item->type,
+                        ])->values(),
                 ];
             });
 
@@ -453,8 +315,8 @@ class MachineAttendanceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'uid' => 'required|integer|unique:machine_attendances,uid',
-            'attendance_id' => 'required|integer',
+            'uid' => 'nullable|integer|unique:machine_attendances,uid',
+            'attendance_id' => 'nullable|integer',
             'user_id' => 'required|exists:users,id',
             'type' => 'required|in:checkin,checkout',
             'datetime' => 'required|date',
@@ -507,5 +369,25 @@ class MachineAttendanceController extends Controller
         return response()->json([
             'message' => 'Attendance deleted successfully.'
         ]);
+    }
+
+
+
+    public function softDelete(MachineAttendance $attendance)
+    {
+        try {
+            $attendance->is_deleted = true;
+            $attendance->save();
+
+            return response()->json([
+                'message' => 'Attendance marked as deleted successfully.',
+                'data' => $attendance
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => 'Failed to mark attendance as deleted.',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }
