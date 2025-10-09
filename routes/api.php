@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\MachineAttendanceController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WebhookController;
@@ -72,7 +73,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('employees', EmployeeController::class);
     Route::get('machine-attendances/summary', [MachineAttendanceController::class, 'summary']);
     Route::apiResource('machine-attendances', MachineAttendanceController::class);
-    
+
+
+    Route::get('/export/users', [ExportController::class, 'exportUsers']);
+    Route::get('/export/departments', [ExportController::class, 'exportDepartments']);
+    Route::get('/export/divisions', [ExportController::class, 'exportDivisions']);
+    Route::get('/export/attendances', [ExportController::class, 'exportAttendances']);
+    Route::get('/export/attendance-details', [ExportController::class, 'exportAttendanceDetails']);
 });
 
 
