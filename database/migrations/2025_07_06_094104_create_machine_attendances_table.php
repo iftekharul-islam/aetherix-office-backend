@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('machine_attendances', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('uid')->unique();
-            $table->unsignedBigInteger('attendance_id')->index();
+            $table->unsignedBigInteger('uid')->nullable();
+            $table->unsignedBigInteger('attendance_id')->nullable();
             $table->unsignedBigInteger('user_id')->index();
             $table->enum('type', ['checkin', 'checkout'])->comment('Type of attendance: checkin or checkout');
             $table->timestamp('datetime')->comment('Date and time of attendance');
+            $table->boolean('is_deleted')->default(false);
             $table->timestamps();
         });
     }
