@@ -248,6 +248,7 @@ class MachineAttendanceController extends Controller
                 // ! this two will be deleted after completion
                 $firstCheckin = $group->min('datetime');
                 $lastCheckout = $group->max('datetime');
+                
                 $firstItem = $group->first();
 
                 return [
@@ -261,6 +262,7 @@ class MachineAttendanceController extends Controller
                         'employee_id' => $firstItem->user->employee_id ?? null,
                         'department' => $firstItem->user->department->name ?? null,
                         'division' => $firstItem->user->department->division->name ?? null,
+                        'supervisor' => $firstItem->user->supervisor->name ?? null,
                     ],
                     'first_checkin' => $firstCheckin instanceof \Carbon\Carbon ? $firstCheckin->toDateTimeString() : $firstCheckin,
                     'last_checkout' => $lastCheckout instanceof \Carbon\Carbon ? $lastCheckout->toDateTimeString() : $lastCheckout,
