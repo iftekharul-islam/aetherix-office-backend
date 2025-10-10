@@ -63,17 +63,42 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 
 
 
+// ! original ones
+
+// Route::middleware('auth:sanctum')->group(function () {
+//     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+//     Route::apiResource("users", UserController::class);
+//     Route::get('/user', [UserController::class, 'me']);
+
+//     Route::apiResource('divisions', DivisionController::class);
+//     Route::apiResource('departments', DepartmentController::class);
+//     Route::apiResource('employees', EmployeeController::class);
+//     Route::get('machine-attendances/summary', [MachineAttendanceController::class, 'summary']);
+//     Route::apiResource('machine-attendances', MachineAttendanceController::class);
+
+
+//     Route::get('/export/users', [ExportController::class, 'exportUsers']);
+//     Route::get('/export/departments', [ExportController::class, 'exportDepartments']);
+//     Route::get('/export/divisions', [ExportController::class, 'exportDivisions']);
+//     Route::get('/export/attendances', [ExportController::class, 'exportAttendances']);
+//     Route::get('/export/attendance-details', [ExportController::class, 'exportAttendanceDetails']);
+//     Route::patch('attendance/{attendance}/soft-delete', [MachineAttendanceController::class, 'softDelete']);
+// });
+
+
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::apiResource("users", UserController::class);
     Route::get('/user', [UserController::class, 'me']);
+});
 
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::apiResource("users", UserController::class);
     Route::apiResource('divisions', DivisionController::class);
     Route::apiResource('departments', DepartmentController::class);
     Route::apiResource('employees', EmployeeController::class);
     Route::get('machine-attendances/summary', [MachineAttendanceController::class, 'summary']);
     Route::apiResource('machine-attendances', MachineAttendanceController::class);
-
 
     Route::get('/export/users', [ExportController::class, 'exportUsers']);
     Route::get('/export/departments', [ExportController::class, 'exportDepartments']);
@@ -84,13 +109,6 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
-
-
-
-
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
 
 
 Route::get('/machine-attendance/{u_id}', function ($u_id) {

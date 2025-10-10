@@ -79,6 +79,7 @@ class UserController extends Controller
             $validated = $request->validate([
                 'name' => 'sometimes|required|string|max:255',
                 'email' => ['sometimes', 'required', 'email', Rule::unique('users')->ignore($user->id)],
+                'employee_id' => ['sometimes', 'required', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
                 'machine_id' => 'sometimes|nullable|string|max:20',
                 'department_id' => 'nullable|exists:departments,id',
                 'supervisor_id' => 'nullable|integer|exists:users,id',
@@ -86,7 +87,7 @@ class UserController extends Controller
                 'password' => 'nullable|string|min:6',
             ]);
 
-            // Hash password if provided
+            
             if (isset($validated['password'])) {
                 $validated['password'] = Hash::make($validated['password']);
             }
@@ -108,6 +109,7 @@ class UserController extends Controller
             return response()->json(['error' => 'Failed to update user'], 500);
         }
     }
+
 
 
     // Delete a user

@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
         Division::create([
             'name' => 'Citygen',
             'code' => 'CTG',
-            'description' => 'Citygen Division',
+            'description' => 'CityZen Division',
         ]);
         Department::create([
             'division_id' => 1,
@@ -42,10 +42,11 @@ class DatabaseSeeder extends Seeder
         ]);
 
         User::create([
-            'name' => 'Asm Saki',
+            'name' => 'Admin Bhai',
             'machine_id' => 454545,
             'email' => 'admin@example.com',
-            'role' => 'employee',
+            'role' => 'admin',
+            'employee_id'=> 'zak 5729357239',
             'password' => Hash::make('123456'),
         ]);
 
