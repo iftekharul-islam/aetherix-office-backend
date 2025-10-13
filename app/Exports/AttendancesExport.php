@@ -33,6 +33,7 @@ class AttendancesExport implements FromCollection, WithHeadings
                     ->orWhere('attendance_id', 'like', "%$search%")
                     ->orWhere('type', 'like', "%$search%");
             })
+            ->where('is_deleted', false)
             ->when($request->filled('user_id'), fn($q) => $q->where('user_id', $request->user_id))
             ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
             ->when(

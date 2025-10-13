@@ -208,9 +208,17 @@ class MachineAttendanceController extends Controller
 
 
             // Sorting
+
             if ($request->filled('sort_by') && $request->filled('sort_order')) {
-                $query->orderBy($request->sort_by, $request->sort_order);
+                if ($request->sort_by === 'date') {
+                   
+                    $query->orderByRaw("DATE(datetime) {$request->sort_order}, TIME(datetime) ASC");
+                } else {
+                   
+                    $query->orderBy($request->sort_by, $request->sort_order);
+                }
             } else {
+                // Default sorting: date descending, time ascending
                 $query->orderByRaw('DATE(datetime) DESC, TIME(datetime) ASC');
             }
 
@@ -248,7 +256,7 @@ class MachineAttendanceController extends Controller
                 // ! this two will be deleted after completion
                 $firstCheckin = $group->min('datetime');
                 $lastCheckout = $group->max('datetime');
-                
+
                 $firstItem = $group->first();
 
                 return [
