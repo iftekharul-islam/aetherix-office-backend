@@ -81,8 +81,8 @@ class AttendanceDetailsExport implements FromCollection, WithHeadings
             'Email',
             'Department',
             'Division',
-            'Check-in',
-            'Check-out',
+            'Check-in Details',
+            'Check-out Details',
         ];
     }
 }

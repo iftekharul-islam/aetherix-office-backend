@@ -379,16 +379,16 @@ class MachineAttendanceController extends Controller
                 return $item->user_id . '_' . $dateString;
             });
 
-           
+
             $perPage = $request->input('per_page', 10);
             $page = $request->input('page', 1);
             $sliced = $grouped->slice(($page - 1) * $perPage, $perPage)->values();
 
-            
+
             $data = $sliced->map(function ($group) {
                 $firstItem = $group->first();
 
-                
+
                 if (!$firstItem || !$firstItem->user) {
                     return null;
                 }
@@ -424,6 +424,7 @@ class MachineAttendanceController extends Controller
                                 ? $item->datetime->toDateTimeString()
                                 : $item->datetime,
                             'type' => $item->type,
+                            'note' => $item->note,
                         ])->values(),
                 ];
             })->filter(); // Remove null values
@@ -464,6 +465,7 @@ class MachineAttendanceController extends Controller
             'user_id' => 'required|exists:users,id',
             'type' => 'required|in:checkin,checkout',
             'datetime' => 'required|date',
+            'note' => 'nullable|string|max:500',
         ]);
 
         $attendance = MachineAttendance::create($validated);

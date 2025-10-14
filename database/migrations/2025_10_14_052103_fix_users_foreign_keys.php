@@ -12,16 +12,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Drop old columns
-            $table->dropColumn('supervisor_id');
-            $table->dropForeign(['department_id']);
-            $table->dropColumn('department_id');
+            // Check if the column exists and drop it safely
+            $table->dropColumn(['supervisor_id', 'department_id']);
         });
 
         Schema::table('users', function (Blueprint $table) {
-            // Add corrected columns
-            $table->foreignId('department_id')->nullable()->after('employee_id')->constrained('departments')->onDelete('set null');
-            $table->foreignId('supervisor_id')->nullable()->after('email')->constrained('users')->onDelete('set null');
+            // Add properly defined foreign keys
+            $table->foreignId('department_id')
+                ->nullable()
+                ->after('employee_id')
+                ->constrained('departments')
+                ->onDelete('set null');
+            
+            $table->foreignId('supervisor_id')
+                ->nullable()
+                ->after('email')
+                ->constrained('users')
+                ->onDelete('set null');
         });
     }
 
@@ -30,6 +37,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['department_id', 'supervisor_id']);
+            $table->dropColumn(['department_id', 'supervisor_id']);
+        });
     }
 };

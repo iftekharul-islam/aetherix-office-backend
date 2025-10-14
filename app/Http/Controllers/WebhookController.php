@@ -10,6 +10,7 @@ class WebhookController extends Controller
 {
     public function handleAttendance(Request $request)
     {
+       
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $jsonContent = file_get_contents($file->getRealPath());
@@ -38,6 +39,7 @@ class WebhookController extends Controller
                             'user_id' => $user->id,
                             'type' => $attendance['state'] == 1 ? 'checkin' : 'checkout',
                             'datetime' => $attendance['timestamp'],
+                             'note' => $attendance['note'] ?? null,
                         ]);
                     } catch (\Throwable $th) {
                         info("Error creating attendance for user ID {$user->id}: " . $th->getMessage());

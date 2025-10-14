@@ -13,6 +13,7 @@ class MachineAttendance extends Model
         'user_id',
         'type',
         'datetime',
+        'note',
     ];
 
     protected static function boot()
