@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MachineAttendance;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
 
 class MachineAttendanceController extends Controller
 {
@@ -166,14 +167,163 @@ class MachineAttendanceController extends Controller
 
 
 
+    // public function summary(Request $request)
+    // {
+
+    //     info(("Request Data: " . json_encode($request->all())));
+
+    //     try {
+    //         // Base query with relationships and filters
+    //         $query = MachineAttendance::with(['user.department.division'])
+    //             ->when($request->filled('search'), function ($q) use ($request) {
+    //                 $search = $request->input('search');
+    //                 $q->whereHas('user', function ($q2) use ($search) {
+    //                     $q2->where('name', 'like', "%$search%")
+    //                         ->orWhere('email', 'like', "%$search%")
+    //                         ->orWhere('employee_id', 'like', "%$search%");
+    //                 })
+    //                     ->orWhere('attendance_id', 'like', "%$search%")
+    //                     ->orWhere('type', 'like', "%$search%");
+    //             })
+    //             ->where('is_deleted', false)
+    //             ->when($request->filled('user_id'), fn($q) => $q->where('user_id', $request->user_id))
+    //             ->when($request->filled('type'), fn($q) => $q->where('type', $request->type))
+    //             ->when(
+    //                 $request->filled('department_id'),
+    //                 fn($q) =>
+    //                 $q->whereHas('user.department', fn($q2) => $q2->where('id', $request->department_id))
+    //             )
+    //             ->when(
+    //                 $request->filled('division_id'),
+    //                 fn($q) =>
+    //                 $q->whereHas('user.department.division', fn($q2) => $q2->where('id', $request->division_id))
+    //             )
+    //             ->when($request->filled('from') && $request->filled('to'), function ($q) use ($request) {
+    //                 $from = $request->input('from') . ' 00:00:00';
+    //                 $to = $request->input('to') . ' 23:59:59';
+    //                 $q->whereBetween('datetime', [$from, $to]);
+    //             })
+    //             ->when($request->filled('date') && !$request->filled('from') && !$request->filled('to'), function ($q) use ($request) {
+    //                 $q->whereDate('datetime', $request->date);
+    //             });
+
+
+    //         // Sorting
+
+    //         if ($request->filled('sort_by') && $request->filled('sort_order')) {
+    //             if ($request->sort_by === 'date') {
+
+    //                 $query->orderByRaw("DATE(datetime) {$request->sort_order}, TIME(datetime) ASC");
+    //             } else {
+
+    //                 $query->orderBy($request->sort_by, $request->sort_order);
+    //             }
+    //         } else {
+    //             // Default sorting: date descending, time ascending
+    //             $query->orderByRaw('DATE(datetime) DESC, TIME(datetime) ASC');
+    //         }
+
+    //         // Fetch all attendances
+    //         $attendances = $query->get();
+
+    //         // Group by user + date
+    //         $grouped = $attendances->groupBy(function ($item) {
+    //             $dateString = $item->datetime instanceof \Carbon\Carbon
+    //                 ? $item->datetime->format('Y-m-d')
+    //                 : date('Y-m-d', strtotime($item->datetime));
+    //             return $item->user_id . '_' . $dateString;
+    //         });
+
+    //         // Pagination
+    //         $perPage = $request->input('per_page', 10);
+    //         $page = $request->input('page', 1);
+    //         $sliced = $grouped->slice(($page - 1) * $perPage, $perPage)->values();
+
+    //         $paginator = new LengthAwarePaginator(
+    //             $sliced,
+    //             $grouped->count(),
+    //             $perPage,
+    //             $page,
+    //             ['path' => $request->url(), 'query' => $request->query()]
+    //         );
+
+    //         // Prepare response data
+    //         $data = $sliced->map(function ($group) {
+    //             // ! don't delete this two,
+    //             // $firstCheckin = $group->where('type', 'checkin')->min('datetime');
+    //             // $lastCheckout = $group->where('type', 'checkout')->max('datetime');
+
+
+    //             // ! this two will be deleted after completion
+    //             $firstCheckin = $group->min('datetime');
+    //             $lastCheckout = $group->max('datetime');
+
+    //             $firstItem = $group->first();
+
+    //             return [
+    //                 'date' => $firstItem->datetime instanceof \Carbon\Carbon
+    //                     ? $firstItem->datetime->format('Y-m-d')
+    //                     : date('Y-m-d', strtotime($firstItem->datetime)),
+    //                 'user' => [
+    //                     'id' => $firstItem->user->id,
+    //                     'name' => $firstItem->user->name,
+    //                     'email' => $firstItem->user->email,
+    //                     'employee_id' => $firstItem->user->employee_id ?? null,
+    //                     'department' => $firstItem->user->department->name ?? null,
+    //                     'division' => $firstItem->user->department->division->name ?? null,
+    //                     'supervisor' => $firstItem->user->supervisor->name ?? null,
+    //                 ],
+    //                 'first_checkin' => $firstCheckin instanceof \Carbon\Carbon ? $firstCheckin->toDateTimeString() : $firstCheckin,
+    //                 'last_checkout' => $lastCheckout instanceof \Carbon\Carbon ? $lastCheckout->toDateTimeString() : $lastCheckout,
+    //                 // 'details' => $group
+    //                 //     ->where('is_deleted', false)
+    //                 //     ->map(fn($item) => [
+    //                 //         'id' => $item->id,
+    //                 //         'datetime' => $item->datetime instanceof \Carbon\Carbon
+    //                 //             ? $item->datetime->toDateTimeString()
+    //                 //             : $item->datetime,
+    //                 //         'type' => $item->type,
+    //                 //     ])->values(),
+    //                 'details' => $group
+    //                     ->where('is_deleted', false)
+    //                     ->sortBy(function ($item) {
+    //                         return $item->datetime instanceof \Carbon\Carbon
+    //                             ? $item->datetime->timestamp
+    //                             : strtotime($item->datetime);
+    //                     })
+    //                     ->map(fn($item) => [
+    //                         'id' => $item->id,
+    //                         'datetime' => $item->datetime instanceof \Carbon\Carbon
+    //                             ? $item->datetime->toDateTimeString()
+    //                             : $item->datetime,
+    //                         'type' => $item->type,
+    //                     ])->values(),
+    //             ];
+    //         });
+
+    //         return response()->json([
+    //             'data' => $data,
+    //             'total' => $grouped->count(),
+    //             'per_page' => $perPage,
+    //             'current_page' => (int)$page,
+    //             'last_page' => ceil($grouped->count() / $perPage)
+    //         ]);
+    //     } catch (\Throwable $e) {
+    //         return response()->json([
+    //             'error' => 'Something went wrong',
+    //             'message' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
+
     public function summary(Request $request)
     {
-
         info(("Request Data: " . json_encode($request->all())));
 
         try {
             // Base query with relationships and filters
-            $query = MachineAttendance::with(['user.department.division'])
+            $query = MachineAttendance::with(['user.department.division', 'user.supervisor'])
                 ->when($request->filled('search'), function ($q) use ($request) {
                     $search = $request->input('search');
                     $q->whereHas('user', function ($q2) use ($search) {
@@ -206,15 +356,11 @@ class MachineAttendanceController extends Controller
                     $q->whereDate('datetime', $request->date);
                 });
 
-
             // Sorting
-
             if ($request->filled('sort_by') && $request->filled('sort_order')) {
                 if ($request->sort_by === 'date') {
-                   
                     $query->orderByRaw("DATE(datetime) {$request->sort_order}, TIME(datetime) ASC");
                 } else {
-                   
                     $query->orderBy($request->sort_by, $request->sort_order);
                 }
             } else {
@@ -233,31 +379,22 @@ class MachineAttendanceController extends Controller
                 return $item->user_id . '_' . $dateString;
             });
 
-            // Pagination
+           
             $perPage = $request->input('per_page', 10);
             $page = $request->input('page', 1);
             $sliced = $grouped->slice(($page - 1) * $perPage, $perPage)->values();
 
-            $paginator = new LengthAwarePaginator(
-                $sliced,
-                $grouped->count(),
-                $perPage,
-                $page,
-                ['path' => $request->url(), 'query' => $request->query()]
-            );
-
-            // Prepare response data
+            
             $data = $sliced->map(function ($group) {
-                // ! don't delete this two,
-                // $firstCheckin = $group->where('type', 'checkin')->min('datetime');
-                // $lastCheckout = $group->where('type', 'checkout')->max('datetime');
+                $firstItem = $group->first();
 
+                
+                if (!$firstItem || !$firstItem->user) {
+                    return null;
+                }
 
-                // ! this two will be deleted after completion
                 $firstCheckin = $group->min('datetime');
                 $lastCheckout = $group->max('datetime');
-
-                $firstItem = $group->first();
 
                 return [
                     'date' => $firstItem->datetime instanceof \Carbon\Carbon
@@ -268,21 +405,12 @@ class MachineAttendanceController extends Controller
                         'name' => $firstItem->user->name,
                         'email' => $firstItem->user->email,
                         'employee_id' => $firstItem->user->employee_id ?? null,
-                        'department' => $firstItem->user->department->name ?? null,
-                        'division' => $firstItem->user->department->division->name ?? null,
-                        'supervisor' => $firstItem->user->supervisor->name ?? null,
+                        'department' => $firstItem->user->department?->name ?? null,
+                        'division' => $firstItem->user->department?->division?->name ?? null,
+                        'supervisor' => $firstItem->user->supervisor?->name ?? null,
                     ],
                     'first_checkin' => $firstCheckin instanceof \Carbon\Carbon ? $firstCheckin->toDateTimeString() : $firstCheckin,
                     'last_checkout' => $lastCheckout instanceof \Carbon\Carbon ? $lastCheckout->toDateTimeString() : $lastCheckout,
-                    // 'details' => $group
-                    //     ->where('is_deleted', false)
-                    //     ->map(fn($item) => [
-                    //         'id' => $item->id,
-                    //         'datetime' => $item->datetime instanceof \Carbon\Carbon
-                    //             ? $item->datetime->toDateTimeString()
-                    //             : $item->datetime,
-                    //         'type' => $item->type,
-                    //     ])->values(),
                     'details' => $group
                         ->where('is_deleted', false)
                         ->sortBy(function ($item) {
@@ -298,22 +426,28 @@ class MachineAttendanceController extends Controller
                             'type' => $item->type,
                         ])->values(),
                 ];
-            });
+            })->filter(); // Remove null values
 
             return response()->json([
-                'data' => $data,
+                'data' => $data->values(),
                 'total' => $grouped->count(),
                 'per_page' => $perPage,
                 'current_page' => (int)$page,
                 'last_page' => ceil($grouped->count() / $perPage)
             ]);
         } catch (\Throwable $e) {
+            Log::error('Attendance summary error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'error' => 'Something went wrong',
                 'message' => $e->getMessage()
             ], 500);
         }
     }
+
+
 
 
 
