@@ -129,7 +129,7 @@ class UserController extends Controller
             if (!$user) {
                 return response()->json(['error' => 'Not authenticated'], 401);
             }
-            return response()->json($user->only('id', 'name', 'email'));
+            return response()->json($user->only('id', 'name', 'email', 'role'));
         } catch (\Exception $e) {
             Log::error('Fetch authenticated user error: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to fetch user'], 500);

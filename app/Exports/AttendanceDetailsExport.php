@@ -1,7 +1,5 @@
 <?php
 
-
-
 namespace App\Exports;
 
 use App\Models\MachineAttendance;
@@ -43,43 +41,14 @@ class AttendanceDetailsExport implements FromCollection, WithHeadings
 
         $rows = [];
 
-
-        // ! checkin and checkout filter
-        // foreach ($grouped as $group) {
-        //     $group = $group->sortBy('datetime')->values();
-        //     $first = $group->first();
-
-        //     $checkins = $group->where('type', 'checkin')
-        //                 ->pluck('datetime')
-        //                 ->map(fn($d) => date('h:i A', strtotime($d)))
-        //                 ->values();
-        //     $checkouts = $group->where('type', 'checkout')
-        //                  ->pluck('datetime')
-        //                  ->map(fn($d) => date('h:i A', strtotime($d)))
-        //                  ->values();
-
-        //     $max = max($checkins->count(), $checkouts->count());
-
-        //     for ($i = 0; $i < $max; $i++) {
-        //         $rows[] = [
-        //             'Date' => $i === 0 ? date('Y-m-d', strtotime($first->datetime)) : '-',
-        //             'Name' => $i === 0 ? $first->user->name : null,
-        //             'Employee ID' => $i === 0 ? ($first->user->employee_id ?? '-') : '-',
-        //             'Email' => $i === 0 ? $first->user->email : null,
-        //             'Department' => $i === 0 ? ($first->user->department->name ?? '-') : '-',
-        //             'Division' => $i === 0 ? ($first->user->department->division->name ?? '-') : '-',
-        //             'Check-in' => $checkins->get($i) ?? '-',
-        //             'Check-out' => $checkouts->get($i) ?? '-',
-        //         ];
-        //     }
-        // }
-
-        // ! no filters
-
         foreach ($grouped as $group) {
             $group = $group->sortBy('datetime')->values();
             $first = $group->first();
 
+            // Safety check: skip if item or user is null
+            if (!$first || !$first->user) {
+                continue;
+            }
 
             $max = ceil($group->count() / 2);
 
@@ -92,14 +61,13 @@ class AttendanceDetailsExport implements FromCollection, WithHeadings
                     'Name'        => $i === 0 ? $first->user->name : null,
                     'Employee ID' => $i === 0 ? ($first->user->employee_id ?? '-') : '-',
                     'Email'       => $i === 0 ? $first->user->email : null,
-                    'Department'  => $i === 0 ? ($first->user->department->name ?? '-') : '-',
-                    'Division'    => $i === 0 ? ($first->user->department->division->name ?? '-') : '-',
+                    'Department'  => $i === 0 ? ($first->user->department?->name ?? '-') : '-',
+                    'Division'    => $i === 0 ? ($first->user->department?->division?->name ?? '-') : '-',
                     'Check-in'    => $checkin ? date('h:i A', strtotime($checkin->datetime)) : '-',
                     'Check-out'   => $checkout ? date('h:i A', strtotime($checkout->datetime)) : '-',
                 ];
             }
         }
-
 
         return collect($rows);
     }
@@ -113,8 +81,8 @@ class AttendanceDetailsExport implements FromCollection, WithHeadings
             'Email',
             'Department',
             'Division',
-            'Check-in',
-            'Check-out',
+            'Check-in Details',
+            'Check-out Details',
         ];
     }
 }

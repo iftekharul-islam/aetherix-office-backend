@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
             'description' => 'Aetherix Division',
         ]);
         Division::create([
-            'name' => 'Citygen',
+            'name' => 'Citizen',
             'code' => 'CTG',
             'description' => 'CityZen Division',
         ]);
@@ -36,17 +36,17 @@ class DatabaseSeeder extends Seeder
 
         Department::create([
             'division_id' => 2,
-            'name' => 'CityZen Operations',
+            'name' => 'Citizen Operations',
             'code' => 'CTO',
             'description' => 'CityZen Operations Department',
         ]);
 
         User::create([
-            'name' => 'Admin Bhai',
+            'name' => 'Admin',
             'machine_id' => 454545,
             'email' => 'admin@example.com',
             'role' => 'admin',
-            'employee_id'=> 'zak 5729357239',
+            'employee_id'=> 'Admin5729357239',
             'password' => Hash::make('123456'),
         ]);
 
