@@ -408,6 +408,7 @@ class MachineAttendanceController extends Controller
                         'department' => $firstItem->user->department?->name ?? null,
                         'division' => $firstItem->user->department?->division?->name ?? null,
                         'supervisor' => $firstItem->user->supervisor?->name ?? null,
+                        'office_start_time' => $firstItem->user->department?->office_start_time ?? null,
                     ],
                     'first_checkin' => $firstCheckin instanceof \Carbon\Carbon ? $firstCheckin->toDateTimeString() : $firstCheckin,
                     'last_checkout' => $lastCheckout instanceof \Carbon\Carbon ? $lastCheckout->toDateTimeString() : $lastCheckout,
