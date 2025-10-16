@@ -34,10 +34,10 @@ class User extends Authenticatable
         parent::boot();
 
         static::created(function ($user) {
-           if (!$user->employee_id) {
-            $user->employee_id = 'EMP' . str_pad((string) $user->id, 5, '0', STR_PAD_LEFT);
-            $user->save();
-        }
+            if (!$user->employee_id) {
+                $user->employee_id = 'EMP' . str_pad((string) $user->id, 5, '0', STR_PAD_LEFT);
+                $user->save();
+            }
         });
     }
 
@@ -77,5 +77,11 @@ class User extends Authenticatable
     public function supervisor()
     {
         return $this->belongsTo(User::class, 'supervisor_id');
+    }
+
+
+    public function attendanceNotes()
+    {
+        return $this->hasMany(AttendanceNote::class);
     }
 }
