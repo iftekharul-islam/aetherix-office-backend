@@ -361,7 +361,7 @@ class MachineAttendanceController extends Controller
 
         try {
             // Build user query first with all filters
-            $userQuery = User::with(['department.division', 'supervisor'])
+            $userQuery = User::nonAdmin()->with(['department.division', 'supervisor'])
                 ->when($request->filled('search'), function ($q) use ($request) {
                     $search = $request->input('search');
                     $q->where(function ($q2) use ($search) {

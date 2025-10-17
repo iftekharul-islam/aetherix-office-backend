@@ -84,4 +84,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(AttendanceNote::class);
     }
+
+
+    /**
+     * Scope a query to only include non-admin users.
+     */
+    public function scopeNonAdmin($query)
+    {
+        return $query->where('role', '!=', 'admin')
+            ->orWhereNull('role');
+    }
 }
