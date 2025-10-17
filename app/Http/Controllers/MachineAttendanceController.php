@@ -536,12 +536,6 @@ class MachineAttendanceController extends Controller
         }
     }
 
-
-
-
-
-
-
     /**
      * Store a newly created machine attendance.
      */
