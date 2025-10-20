@@ -21,11 +21,19 @@ class DepartmentController extends Controller
                 'code' => 'required|string|max:20|unique:departments',
                 'description' => 'nullable|string',
                 'head_id' => 'nullable|exists:users,id',
+                'office_start_time' => 'nullable|string',
+                'expected_duty_hours' => 'nullable|numeric|min:0|max:24',
+                'on_time_threshold_minutes' => 'nullable|integer|min:0|max:60',
+                'delay_threshold_minutes' => 'nullable|integer|min:0|max:120',
+                'extreme_delay_threshold_minutes' => 'nullable|integer|min:0|max:180',
             ]);
 
+            // Convert time format from "2:53 PM" to "14:53:00"
+            if (!empty($data['office_start_time'])) {
+                $data['office_start_time'] = \Carbon\Carbon::createFromFormat('g:i A', $data['office_start_time'])->format('H:i:s');
+            }
+
             $department = Department::create($data);
-
-
 
             return response()->json([
                 'success' => true,
@@ -64,7 +72,17 @@ class DepartmentController extends Controller
             'code' => 'sometimes|required|string|max:20|unique:departments,code,' . $department->id,
             'description' => 'nullable|string',
             'head_id' => 'nullable|exists:users,id',
+            'office_start_time' => 'nullable|string',
+            'expected_duty_hours' => 'nullable|numeric|min:0|max:24',
+            'on_time_threshold_minutes' => 'nullable|integer|min:0|max:60',
+            'delay_threshold_minutes' => 'nullable|integer|min:0|max:120',
+            'extreme_delay_threshold_minutes' => 'nullable|integer|min:0|max:180',
         ]);
+
+        // Convert time format from "2:53 PM" to "14:53:00"
+        if (!empty($data['office_start_time'])) {
+            $data['office_start_time'] = \Carbon\Carbon::createFromFormat('g:i A', $data['office_start_time'])->format('H:i:s');
+        }
 
         $department->update($data);
 

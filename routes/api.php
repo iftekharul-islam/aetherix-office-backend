@@ -14,103 +14,79 @@ use App\Models\MachineAttendance;
 use Illuminate\Support\Facades\Route;
 
 
-Route::get('/products', function () {
-    return [
-        [
-            'id' => 1,
-            'name' => 'Laptop',
-            'price' => 1200,
-            'in_stock' => true,
-        ],
-        [
-            'id' => 2,
-            'name' => 'Smartphone',
-            'price' => 800,
-            'in_stock' => false,
-        ],
-        [
-            'id' => 3,
-            'name' => 'Headphones',
-            'price' => 150,
-            'in_stock' => true,
-        ],
-    ];
-});
-Route::get('/products4', function () {
-    return [
-        [
-            'id' => 1,
-            'name' => 'Laptop',
-            'price' => 1200,
-            'in_stock' => true,
-        ],
-        [
-            'id' => 2,
-            'name' => 'Smartphone',
-            'price' => 800,
-            'in_stock' => false,
-        ],
-        [
-            'id' => 3,
-            'name' => 'Headphones',
-            'price' => 150,
-            'in_stock' => true,
-        ],
-    ];
-});
-// Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 
 
-
-// ! original ones
-
-// Route::middleware('auth:sanctum')->group(function () {
-//     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-//     Route::apiResource("users", UserController::class);
-//     Route::get('/user', [UserController::class, 'me']);
-
-//     Route::apiResource('divisions', DivisionController::class);
-//     Route::apiResource('departments', DepartmentController::class);
-//     Route::apiResource('employees', EmployeeController::class);
-//     Route::get('machine-attendances/summary', [MachineAttendanceController::class, 'summary']);
-//     Route::apiResource('machine-attendances', MachineAttendanceController::class);
-
-
-//     Route::get('/export/users', [ExportController::class, 'exportUsers']);
-//     Route::get('/export/departments', [ExportController::class, 'exportDepartments']);
-//     Route::get('/export/divisions', [ExportController::class, 'exportDivisions']);
-//     Route::get('/export/attendances', [ExportController::class, 'exportAttendances']);
-//     Route::get('/export/attendance-details', [ExportController::class, 'exportAttendanceDetails']);
-//     Route::patch('attendance/{attendance}/soft-delete', [MachineAttendanceController::class, 'softDelete']);
-// });
-
-
-
+// Routes accessible to ALL authenticated users (both admin and regular users)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/user', [UserController::class, 'me']);
+    
+    // Read-only access for all authenticated users
+    Route::get('users', [UserController::class, 'index']);
+    Route::get('users/{user}', [UserController::class, 'show']);
+    
+    Route::get('divisions', [DivisionController::class, 'index']);
+    Route::get('divisions/{division}', [DivisionController::class, 'show']);
+    
+    Route::get('departments', [DepartmentController::class, 'index']);
+    Route::get('departments/{department}', [DepartmentController::class, 'show']);
+    
+    Route::get('employees', [EmployeeController::class, 'index']);
+    Route::get('employees/{employee}', [EmployeeController::class, 'show']);
+    
+    Route::get('machine-attendances', [MachineAttendanceController::class, 'index']);
+    Route::get('machine-attendances/summary', [MachineAttendanceController::class, 'summary']);
+    Route::get('machine-attendances/{machine_attendance}', [MachineAttendanceController::class, 'show']);
 });
 
-Route::middleware(['auth:sanctum', 'admin'])->group(function () {
-    Route::apiResource("users", UserController::class);
-    Route::apiResource('divisions', DivisionController::class);
-    Route::apiResource('departments', DepartmentController::class);
-    Route::apiResource('employees', EmployeeController::class);
-    Route::get('machine-attendances/summary', [MachineAttendanceController::class, 'summary']);
-    Route::apiResource('machine-attendances', MachineAttendanceController::class);
 
+// Admin-only routes (Create, Update, Delete operations)
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    // Users - Admin only operations
+    Route::post('users', [UserController::class, 'store']);
+    Route::put('users/{user}', [UserController::class, 'update']);
+    Route::patch('users/{user}', [UserController::class, 'update']);
+    Route::delete('users/{user}', [UserController::class, 'destroy']);
+    
+    // Divisions - Admin only operations
+    Route::post('divisions', [DivisionController::class, 'store']);
+    Route::put('divisions/{division}', [DivisionController::class, 'update']);
+    Route::patch('divisions/{division}', [DivisionController::class, 'update']);
+    Route::delete('divisions/{division}', [DivisionController::class, 'destroy']);
+    
+    // Departments - Admin only operations
+    Route::post('departments', [DepartmentController::class, 'store']);
+    Route::put('departments/{department}', [DepartmentController::class, 'update']);
+    Route::patch('departments/{department}', [DepartmentController::class, 'update']);
+    Route::delete('departments/{department}', [DepartmentController::class, 'destroy']);
+    
+    // Employees - Admin only operations
+    Route::post('employees', [EmployeeController::class, 'store']);
+    Route::put('employees/{employee}', [EmployeeController::class, 'update']);
+    Route::patch('employees/{employee}', [EmployeeController::class, 'update']);
+    Route::delete('employees/{employee}', [EmployeeController::class, 'destroy']);
+    
+    // Machine Attendances - Admin only operations
+    Route::post('machine-attendances', [MachineAttendanceController::class, 'store']);
+    Route::put('machine-attendances/{machine_attendance}', [MachineAttendanceController::class, 'update']);
+    Route::patch('machine-attendances/{machine_attendance}', [MachineAttendanceController::class, 'update']);
+    Route::delete('machine-attendances/{machine_attendance}', [MachineAttendanceController::class, 'destroy']);
+    Route::patch('attendance/{attendance}/soft-delete', [MachineAttendanceController::class, 'softDelete']);
+
+    // Export routes - Admin only
     Route::get('/export/users', [ExportController::class, 'exportUsers']);
     Route::get('/export/departments', [ExportController::class, 'exportDepartments']);
     Route::get('/export/divisions', [ExportController::class, 'exportDivisions']);
     Route::get('/export/attendances', [ExportController::class, 'exportAttendances']);
     Route::get('/export/attendance-details', [ExportController::class, 'exportAttendanceDetails']);
-    Route::patch('attendance/{attendance}/soft-delete', [MachineAttendanceController::class, 'softDelete']);
+    
+    // Attendance notes - Admin only
+    Route::post('/attendance-notes', [MachineAttendanceController::class, 'updateOrCreateNote']);
 });
 
 
-
-
+// Public/webhook routes
 Route::get('/machine-attendance/{u_id}', function ($u_id) {
     MachineAttendance::create([
         'attendance_id' => '12345',
@@ -120,7 +96,6 @@ Route::get('/machine-attendance/{u_id}', function ($u_id) {
     ]);
     return response()->json(['message' => 'Attendance recorded successfully.']);
 });
-
 
 Route::post('/webhook/attendance', [WebhookController::class, 'handleAttendance']);
 

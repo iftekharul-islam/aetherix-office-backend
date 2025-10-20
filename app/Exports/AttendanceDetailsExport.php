@@ -3,10 +3,12 @@
 namespace App\Exports;
 
 use App\Models\MachineAttendance;
+use App\Models\AttendanceNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Carbon\Carbon;
 
 class AttendanceDetailsExport implements FromCollection, WithHeadings
 {
@@ -39,9 +41,25 @@ class AttendanceDetailsExport implements FromCollection, WithHeadings
             return $item->user_id . '_' . $date;
         });
 
+        // Fetch all notes for the attendances
+        $userIds = $attendances->pluck('user_id')->unique();
+        $dates = $attendances->map(function ($item) {
+            return $item->datetime instanceof \Carbon\Carbon
+                ? $item->datetime->format('Y-m-d')
+                : date('Y-m-d', strtotime($item->datetime));
+        })->unique();
+
+        $notes = AttendanceNote::whereIn('user_id', $userIds)
+            ->whereIn('date', $dates)
+            ->get()
+            ->keyBy(function ($item) {
+                $dateString = Carbon::parse($item->date)->format('Y-m-d');
+                return $item->user_id . '_' . $dateString;
+            });
+
         $rows = [];
 
-        foreach ($grouped as $group) {
+        foreach ($grouped as $key => $group) {
             $group = $group->sortBy('datetime')->values();
             $first = $group->first();
 
@@ -49,6 +67,9 @@ class AttendanceDetailsExport implements FromCollection, WithHeadings
             if (!$first || !$first->user) {
                 continue;
             }
+
+            // Get note for this user and date
+            $noteRecord = $notes->get($key);
 
             $max = ceil($group->count() / 2);
 
@@ -59,12 +80,13 @@ class AttendanceDetailsExport implements FromCollection, WithHeadings
                 $rows[] = [
                     'Date'        => $i === 0 ? date('Y-m-d', strtotime($first->datetime)) : '-',
                     'Name'        => $i === 0 ? $first->user->name : null,
-                    'Employee ID' => $i === 0 ? ($first->user->employee_id ?? '-') : '-',
+                    'Employee ID' => $i === 0 ? ($first->user->employee_id ?? 'N/A') : '-',
                     'Email'       => $i === 0 ? $first->user->email : null,
-                    'Department'  => $i === 0 ? ($first->user->department?->name ?? '-') : '-',
-                    'Division'    => $i === 0 ? ($first->user->department?->division?->name ?? '-') : '-',
-                    'Check-in'    => $checkin ? date('h:i A', strtotime($checkin->datetime)) : '-',
-                    'Check-out'   => $checkout ? date('h:i A', strtotime($checkout->datetime)) : '-',
+                    'Department'  => $i === 0 ? ($first->user->department?->name ?? 'N/A') : '-',
+                    'Division'    => $i === 0 ? ($first->user->department?->division?->name ?? 'N/A') : '-',
+                    'Check-in'    => $checkin ? date('h:i A', strtotime($checkin->datetime)) : 'N/A',
+                    'Check-out'   => $checkout ? date('h:i A', strtotime($checkout->datetime)) : 'N/A',
+                    'Note'        => $i === 0 ? ($noteRecord?->note ?? 'N/A') : '-',
                 ];
             }
         }
@@ -83,6 +105,7 @@ class AttendanceDetailsExport implements FromCollection, WithHeadings
             'Division',
             'Check-in Details',
             'Check-out Details',
+            'Note',
         ];
     }
 }
